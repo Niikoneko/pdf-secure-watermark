@@ -61,10 +61,11 @@ def make_overlay(width, height, text, opacity, color, font_size, angle):
     return PdfReader(buffer).pages[0]
 
 
-def add_watermark(reader, text, opacity, color, font_ratio, angle):
+def add_watermark(reader, text, opacity, color, font_ratio, angle, nbPages=None):
     """Retourne un PdfWriter avec le filigrane fusionné sur chaque page."""
     writer = PdfWriter()
-    for page in reader.pages:
+    pages = reader.pages if nbPages is None else reader.pages[:nbPages]
+    for page in pages:
         box = page.mediabox
         width, height = float(box.width), float(box.height)
         font_size = width * font_ratio
@@ -122,6 +123,7 @@ def parse_args():
     )
     p.add_argument("--dpi", type=int, default=150, help="Résolution si --flatten (défaut 150)")
     p.add_argument("--jpeg-quality", type=int, default=85, help="Qualité JPEG si --flatten")
+    p.add_argument("--nb-pages", type=int, help="Nombre de pages à traiter (défaut : toutes)")
     return p.parse_args()
 
 
@@ -150,7 +152,7 @@ def main():
         if reader.is_encrypted:
             sys.exit("Erreur : le PDF est protégé par un mot de passe (non géré).")
         writer = add_watermark(
-            reader, text, args.opacity, color, args.font_ratio, args.angle
+            reader, text, args.opacity, color, args.font_ratio, args.angle, args.nb_pages
         )
         buf = io.BytesIO()
         writer.write(buf)
@@ -163,7 +165,7 @@ def main():
     except Exception as e:
         sys.exit(f"Erreur : {e}")
 
-    print(f"Filigrane ajouté sur {len(reader.pages)} page(s) -> {args.output}")
+    print(f"Filigrane ajouté sur {len(writer.pages)} page(s) -> {args.output}")
 
 
 if __name__ == "__main__":
